@@ -36,10 +36,10 @@ def black_scholes_put(S, K, T, r, sigma):
     d2 = d1 - sigma*np.sqrt(T)
     return K*np.exp(-r*T)*norm.cdf(-d2) - S*norm.cdf(-d1)
 
-def estimate_volatility(stock_data, lookback=30):
+def estimate_volatility(stock_data, lookback=30, fallback=0.2):
     hist_returns = stock_data['Close'].pct_change().dropna()
     sigma = hist_returns[-lookback:].std() * np.sqrt(252)
-    return sigma if sigma > 0 else 0.2
+    return sigma if sigma > 0 else fallback
 
 # -----------------------------
 # Strategy Evaluation
@@ -57,9 +57,8 @@ def evaluate_option_trade(strat, spot, strike, premium, spot_at_exp):
     if "Sell Put" in strat:  return premium - max(strike - spot_at_exp, 0)
     return 0
 
-def backtest_strategy(ticker, strat, expiry_offset, date_range, strike_mode="ATM"):
+def backtest_strategy(ticker, strat, expiry_offset, date_range, strike_mode="ATM", r=0.03, sigma_fallback=0.2):
     all_trades = []
-    r = 0.03
     start, end = date_range
     stock_data = get_stock_data(ticker, str(start), str(end + timedelta(days=expiry_offset)))
     if stock_data.empty: return pd.DataFrame()
@@ -73,7 +72,7 @@ def backtest_strategy(ticker, strat, expiry_offset, date_range, strike_mode="ATM
         expiry = stock_data.index[expiry_idx]
 
         T = (expiry - d).days / 365
-        sigma = estimate_volatility(stock_data)
+        sigma = estimate_volatility(stock_data, fallback=sigma_fallback)
 
         if strike_mode == "ATM":
             strike = spot
@@ -122,9 +121,19 @@ with col2:
 start_date = st.date_input("Start Date", datetime(2025,1,1))
 end_date = st.date_input("End Date", datetime.today())
 
+# -----------------------------
+# User-adjustable risk-free rate and fallback volatility
+# -----------------------------
+st.sidebar.subheader("Advanced Settings")
+r = st.sidebar.number_input("Risk-Free Rate (annual, e.g., 0.03 for 3%)", min_value=0.0, max_value=1.0, value=0.03, step=0.001)
+sigma_fallback = st.sidebar.number_input("Fallback Volatility (e.g., 0.2 for 20%)", min_value=0.0, max_value=5.0, value=0.2, step=0.01)
+
+# -----------------------------
+# Run backtest
+# -----------------------------
 if st.button("Run Backtest"):
-    dfA = backtest_strategy(ticker, stratA, expiryA, (start_date,end_date), strikeA)
-    dfB = backtest_strategy(ticker, stratB, expiryB, (start_date,end_date), strikeB)
+    dfA = backtest_strategy(ticker, stratA, expiryA, (start_date,end_date), strikeA, r=r, sigma_fallback=sigma_fallback)
+    dfB = backtest_strategy(ticker, stratB, expiryB, (start_date,end_date), strikeB, r=r, sigma_fallback=sigma_fallback)
 
     if dfA.empty or dfB.empty:
         st.error("No trades generated. Try adjusting parameters or stock symbol.")
