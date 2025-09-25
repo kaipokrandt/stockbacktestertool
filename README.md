@@ -6,6 +6,8 @@ Developed as commission for personal use for a certain Senior Investment Analyst
 
 Not sure if accurate, but fully functional.
 
+Condensed into single file for ease of use for said Analyst.
+
 You can simulate "Buy Call", "Sell Call", "Buy Put", and "Sell Put" strategies, visualize cumulative PnL, and download the full trade log.
 
 ---
