@@ -104,7 +104,7 @@ def backtest_strategy(ticker, strat, expiry_offset, date_range, strike_mode="ATM
 # -----------------------------
 # Streamlit UI
 # -----------------------------
-st.title("📊 Synthetic Options Backtester (Polygon.io)")
+st.title("Synthetic Options Backtester")
 
 ticker = st.text_input("Ticker", "IWM")
 
